@@ -4,12 +4,12 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.wonderprints</groupId>
-	<artifactId>spring5-react-isomorphic-websockets</artifactId>
+	<artifactId>spring5-react-isomorphic-websockets-mongo</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>reactive-websockets</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Isomorphic React with Spring Boot, Spring WebFlux, WebSockets and Mongo</description>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
