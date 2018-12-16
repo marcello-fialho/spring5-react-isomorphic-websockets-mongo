@@ -23,3 +23,10 @@
 /dist/
 /nbdist/
 /.nb-gradle/
+
+src/main/resources/node/
+src/main/resources/node_modules/
+src/main/resources/static/client/
+src/main/resources/static/index.html
+src/main/resources/static/server.js
+src/main/resources/templates/index.html
