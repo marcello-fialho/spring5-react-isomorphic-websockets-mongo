@@ -37,8 +37,9 @@ public class TodosServiceImpl implements TodosService {
         return acc;
     };
 
-    private BiFunction<TodoRepository, Function<List<Todo>, Mono<Void>>, Mono<Void>> findAndProcessAll =
-        (repository, func) -> repository.findAll().reduce(new ArrayList<>(), reducer).flatMap(func).then();
+    private Mono<Void> findAndProcessAll(TodoRepository repository, Function<List<Todo>, Mono<Void>> func)  {
+        return repository.findAll().reduce(new ArrayList<>(), reducer).flatMap(func).then();
+    }
 
     @Override
     public synchronized Mono<Void> completeAllTodos() {
@@ -48,7 +49,7 @@ public class TodosServiceImpl implements TodosService {
             return todoRepository.deleteAll().thenMany(Flux.fromStream(newTodosList.stream()).flatMap(todoRepository::save)).then();
         };
         try {
-            return findAndProcessAll.apply(todoRepository, completeAll);
+            return findAndProcessAll(todoRepository, completeAll);
         } catch (Exception e) {
             return Mono.empty();
         }
@@ -61,7 +62,7 @@ public class TodosServiceImpl implements TodosService {
             return todoRepository.deleteAll().thenMany(Flux.fromStream(newTodosList.stream()).flatMap(todoRepository::save)).then();
         };
         try {
-            return findAndProcessAll.apply(todoRepository, clearCompleted);
+            return findAndProcessAll(todoRepository, clearCompleted);
         } catch (Exception e) {
             return Mono.empty();
         }
