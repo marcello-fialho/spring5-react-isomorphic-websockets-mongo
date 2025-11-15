@@ -12,9 +12,9 @@ import java.util.concurrent.Executors;
 public class React {
 
     private ThreadLocal<NashornScriptEngine> engineHolder = ThreadLocal.withInitial(() -> {
-        NashornScriptEngine nashornScriptEngine = (NashornScriptEngine) new ScriptEngineManager().getEngineByName("nashorn");
-        java.util.concurrent.ScheduledExecutorService globalScheduledThreadPool = Executors.newScheduledThreadPool(20);
-        SimpleScriptContext ctx = new SimpleScriptContext();
+        var nashornScriptEngine = (NashornScriptEngine) new ScriptEngineManager().getEngineByName("nashorn");
+        var globalScheduledThreadPool = Executors.newScheduledThreadPool(20);
+        var ctx = new SimpleScriptContext();
         ctx.setAttribute("__NASHORN_POLYFILL_TIMER__", globalScheduledThreadPool, ScriptContext.ENGINE_SCOPE);
         ctx.setAttribute("__HTTP_SERVLET_REQUEST__", globalScheduledThreadPool, ScriptContext.ENGINE_SCOPE);
         nashornScriptEngine.setContext(ctx);
@@ -29,7 +29,7 @@ public class React {
 
     public String render(String initialState, String request) {
         try {
-            Object html = engineHolder.get().invokeFunction("render", initialState, request);
+            var html = engineHolder.get().invokeFunction("render", initialState, request);
             return String.valueOf(html);
         }
         catch (Exception e) {
@@ -38,7 +38,7 @@ public class React {
     }
 
     private Reader read(String path) {
-        java.io.InputStream in = getClass().getClassLoader().getResourceAsStream(path);
+        var in = getClass().getClassLoader().getResourceAsStream(path);
         return new InputStreamReader(in);
     }
 }

@@ -30,10 +30,10 @@ public class TodosRenderingServiceImpl implements RenderingService {
   private String renderingWaitTimeoutStr;
 
   private BiFunction<TodoRepository, VisibilityFilterRepository, Map<String, Object>> stateGetter = (TodoRepository todoRepository, VisibilityFilterRepository visibilityFilterRepository) -> {
-    Map<String, Object> initialState = new HashMap<String, Object>();
-    ArrayList<Todo> todosList = new ArrayList<Todo>(todoRepository.findAll());
+    var initialState = new HashMap<String, Object>();
+    var todosList = new ArrayList<Todo>(todoRepository.findAll());
     initialState.put("todos", todosList);
-    ArrayList<VisibilityFilter> vList = new ArrayList<VisibilityFilter>(visibilityFilterRepository.findAll());
+    var vList = new ArrayList<VisibilityFilter>(visibilityFilterRepository.findAll());
     if (!vList.isEmpty()) {
       initialState.put("visibilityFilter", vList.get(0).value());
     } else {

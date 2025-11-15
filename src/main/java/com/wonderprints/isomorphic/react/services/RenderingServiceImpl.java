@@ -40,7 +40,7 @@ public final class RenderingServiceImpl implements RenderingService {
 
     public String getCurrentStateAsString() {
         try {
-            Map<String, Object> state = stateGetter.apply(todoRepository, visibilityFilterRepository);
+            var state = stateGetter.apply(todoRepository, visibilityFilterRepository);
             return mapper.writeValueAsString(state);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -69,7 +69,7 @@ public final class RenderingServiceImpl implements RenderingService {
     public Optional<RenderingData> getRenderingData() {
         if (cache == null) return Optional.empty();
         try {
-            boolean acquired = sem.tryAcquire(renderingWaitTimeout, TimeUnit.MILLISECONDS);
+            var acquired = sem.tryAcquire(renderingWaitTimeout, TimeUnit.MILLISECONDS);
             if (acquired) {
                 sem.release();
                 return Optional.of(cache);
@@ -89,7 +89,7 @@ public final class RenderingServiceImpl implements RenderingService {
     @Override
     public boolean tryWaitUntilRendered() {
         try {
-            boolean acquired = sem.tryAcquire(renderingWaitTimeout, TimeUnit.MILLISECONDS);
+            var acquired = sem.tryAcquire(renderingWaitTimeout, TimeUnit.MILLISECONDS);
             if (acquired) {
                 sem.release();
                 return true;
@@ -116,12 +116,12 @@ public final class RenderingServiceImpl implements RenderingService {
         sem.acquireUninterruptibly();
         rendering = true;
         try {
-            HashMap<String, Object> req = new HashMap<String, Object>();
+            var req = new HashMap<String, Object>();
             req.put("location", url);
-            String requestAsString = mapper.writeValueAsString(req);
-            String initialStateAsString = currentStateAsString;
+            var requestAsString = mapper.writeValueAsString(req);
+            var initialStateAsString = currentStateAsString;
             lastRenderedStateAsString = initialStateAsString;
-            String content = react.render(initialStateAsString, requestAsString);
+            var content = react.render(initialStateAsString, requestAsString);
             cache = RenderingData.of(initialStateAsString, content);
             System.out.println("Template rendered...");
         } catch (JsonProcessingException e) {

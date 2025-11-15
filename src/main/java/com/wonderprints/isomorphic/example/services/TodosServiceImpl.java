@@ -35,7 +35,7 @@ public class TodosServiceImpl implements TodosService {
 
     private void findAndProcessAll(TodoRepository repository, Function<List<Todo>, Void> func) {
         CompletableFuture.runAsync(() -> {
-            List<Todo> todosList = repository.findAll();
+            var todosList = repository.findAll();
             func.apply(todosList);
         }, virtualThreadExecutor).join();
     }
@@ -43,8 +43,8 @@ public class TodosServiceImpl implements TodosService {
     @Override
     public synchronized void completeAllTodos() {
         Function<List<Todo>, Void> completeAll = (List<Todo> todosList) -> {
-            boolean areAllMarked = todosList.stream().allMatch(Todo::completed);
-            List<Todo> newTodosList = todosList.stream()
+            var areAllMarked = todosList.stream().allMatch(Todo::completed);
+            var newTodosList = todosList.stream()
                 .map(todo -> new Todo(todo.id(), todo.text(), !areAllMarked))
                 .map(Todo::cp)
                 .collect(Collectors.toList());
@@ -62,7 +62,7 @@ public class TodosServiceImpl implements TodosService {
     @Override
     public synchronized void clearCompleted() {
         Function<List<Todo>, Void> clearCompleted = (List<Todo> todosList) -> {
-            List<Todo> newTodosList = todosList.stream()
+            var newTodosList = todosList.stream()
                 .filter(todo -> !todo.completed())
                 .map(Todo::cp)
                 .collect(Collectors.toList());

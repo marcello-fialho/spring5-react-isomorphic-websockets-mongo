@@ -24,39 +24,44 @@ public class ClientMessageDecoder {
     }
 
     public String handleMessage(String message) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        java.util.regex.Matcher matcher = pattern.matcher(message);
+        var objectMapper = new ObjectMapper();
+        var matcher = pattern.matcher(message);
         if (matcher.matches()) {
-            String actionType = matcher.group(1);
+            var actionType = matcher.group(1);
             try {
                 return CompletableFuture.supplyAsync(() -> {
                     try {
-                        switch (actionType) {
-                            case "ADD_TODO" :
-                                AddTodo addTodoAction = objectMapper.readValue(message, AddTodo.class);
+                        return switch (actionType) {
+                            case "ADD_TODO" -> {
+                                var addTodoAction = objectMapper.readValue(message, AddTodo.class);
                                 todosService.addTodo(new Todo(addTodoAction.id(), addTodoAction.text(), false));
-                                return message;
-                            case "DELETE_TODO" :
-                                DeleteTodo deleteTodoAction = objectMapper.readValue(message, DeleteTodo.class);
+                                yield message;
+                            }
+                            case "DELETE_TODO" -> {
+                                var deleteTodoAction = objectMapper.readValue(message, DeleteTodo.class);
                                 todosService.deleteTodo(deleteTodoAction.id());
-                                return message;
-                            case "UPDATE_TODO" :
-                                UpdateTodo updateTodoAction = objectMapper.readValue(message, UpdateTodo.class);
+                                yield message;
+                            }
+                            case "UPDATE_TODO" -> {
+                                var updateTodoAction = objectMapper.readValue(message, UpdateTodo.class);
                                 todosService.updateTodo(updateTodoAction.todo().id(), updateTodoAction.todo());
-                                return message;
-                            case "COMPLETE_ALL_TODOS":
+                                yield message;
+                            }
+                            case "COMPLETE_ALL_TODOS" -> {
                                 todosService.completeAllTodos();
-                                return message;
-                            case "CLEAR_COMPLETED":
+                                yield message;
+                            }
+                            case "CLEAR_COMPLETED" -> {
                                 todosService.clearCompleted();
-                                return message;
-                            case "SET_VISIBILITY_FILTER":
-                                SetVisibilityFilter setVisibilityFilterAction = objectMapper.readValue(message, SetVisibilityFilter.class);
+                                yield message;
+                            }
+                            case "SET_VISIBILITY_FILTER" -> {
+                                var setVisibilityFilterAction = objectMapper.readValue(message, SetVisibilityFilter.class);
                                 todosService.setVisibilityFilter(setVisibilityFilterAction.filter());
-                                return message;
-                            default:
-                                return null;
-                        }
+                                yield message;
+                            }
+                            default -> null;
+                        };
                     } catch (IOException e) {
                         System.out.println("ClientMessageDecoder: error parsing action: " + e.getMessage());
                         return null;
