@@ -34,15 +34,15 @@ public class ClientMessageDecoder {
                         switch (actionType) {
                             case "ADD_TODO" :
                                 AddTodo addTodoAction = objectMapper.readValue(message, AddTodo.class);
-                                todosService.addTodo(new Todo(addTodoAction.getId(), addTodoAction.getText(), false));
+                                todosService.addTodo(new Todo(addTodoAction.id(), addTodoAction.text(), false));
                                 return message;
                             case "DELETE_TODO" :
                                 DeleteTodo deleteTodoAction = objectMapper.readValue(message, DeleteTodo.class);
-                                todosService.deleteTodo(deleteTodoAction.getId());
+                                todosService.deleteTodo(deleteTodoAction.id());
                                 return message;
                             case "UPDATE_TODO" :
                                 UpdateTodo updateTodoAction = objectMapper.readValue(message, UpdateTodo.class);
-                                todosService.updateTodo(updateTodoAction.getTodo().id(), updateTodoAction.getTodo());
+                                todosService.updateTodo(updateTodoAction.todo().id(), updateTodoAction.todo());
                                 return message;
                             case "COMPLETE_ALL_TODOS":
                                 todosService.completeAllTodos();
@@ -52,7 +52,7 @@ public class ClientMessageDecoder {
                                 return message;
                             case "SET_VISIBILITY_FILTER":
                                 SetVisibilityFilter setVisibilityFilterAction = objectMapper.readValue(message, SetVisibilityFilter.class);
-                                todosService.setVisibilityFilter(setVisibilityFilterAction.getFilter());
+                                todosService.setVisibilityFilter(setVisibilityFilterAction.filter());
                                 return message;
                             default:
                                 return null;
