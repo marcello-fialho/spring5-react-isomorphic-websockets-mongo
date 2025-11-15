@@ -1,7 +1,7 @@
 # spring5-react-isomorphic-websockets-mongo
 ## TL;DR
-Redux Todo demo with the redux state kept on the server. The server is a Spring Boot 2 application, using Spring 5 Webflux and Websockets.
-It does **server side rendering** of the **React** client using **Nashorn**. The rendering process is triggered at startup and on state changes, and the rendered html is cached. 
+Redux Todo demo with the redux state kept on the server. The server is a Spring Boot 3.57 application. In comparison with my original demo, Spring WebFlux was removed and we are using virtual threads now. We are also using graal js to render javascript as opposed to using Nashorn, which is deprecated. In addition to this, we updated the code to use java 25 and to not use lombok.
+It does **server side rendering** of the **React** client using **graal.js**. The rendering process is triggered at startup and on state changes, and the rendered html is cached. 
 Every change in the client application is sent to the server via websockets. The server then updates all clients that are connected to it.
 **So you can have multiple tabs of the browser with the application loaded (even different browsers) and 
 all of them are kept in sync at all times.**
