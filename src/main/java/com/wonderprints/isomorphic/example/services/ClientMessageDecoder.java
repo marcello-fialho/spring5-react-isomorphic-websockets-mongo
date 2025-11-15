@@ -1,7 +1,10 @@
 package com.wonderprints.isomorphic.example.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wonderprints.isomorphic.example.actions.*;
+import com.wonderprints.isomorphic.example.actions.AddTodo;
+import com.wonderprints.isomorphic.example.actions.DeleteTodo;
+import com.wonderprints.isomorphic.example.actions.UpdateTodo;
+import com.wonderprints.isomorphic.example.actions.SetVisibilityFilter;
 import com.wonderprints.isomorphic.example.model.Todo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,17 +36,17 @@ public class ClientMessageDecoder {
                     try {
                         return switch (actionType) {
                             case "ADD_TODO" -> {
-                                var addTodoAction = objectMapper.readValue(message, AddTodo.class);
+                                AddTodo addTodoAction = objectMapper.readValue(message, AddTodo.class);
                                 todosService.addTodo(new Todo(addTodoAction.id(), addTodoAction.text(), false));
                                 yield message;
                             }
                             case "DELETE_TODO" -> {
-                                var deleteTodoAction = objectMapper.readValue(message, DeleteTodo.class);
+                                DeleteTodo deleteTodoAction = objectMapper.readValue(message, DeleteTodo.class);
                                 todosService.deleteTodo(deleteTodoAction.id());
                                 yield message;
                             }
                             case "UPDATE_TODO" -> {
-                                var updateTodoAction = objectMapper.readValue(message, UpdateTodo.class);
+                                UpdateTodo updateTodoAction = objectMapper.readValue(message, UpdateTodo.class);
                                 todosService.updateTodo(updateTodoAction.todo().id(), updateTodoAction.todo());
                                 yield message;
                             }
@@ -56,7 +59,7 @@ public class ClientMessageDecoder {
                                 yield message;
                             }
                             case "SET_VISIBILITY_FILTER" -> {
-                                var setVisibilityFilterAction = objectMapper.readValue(message, SetVisibilityFilter.class);
+                                SetVisibilityFilter setVisibilityFilterAction = objectMapper.readValue(message, SetVisibilityFilter.class);
                                 todosService.setVisibilityFilter(setVisibilityFilterAction.filter());
                                 yield message;
                             }
