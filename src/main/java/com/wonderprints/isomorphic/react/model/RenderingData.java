@@ -1,20 +1,20 @@
 package com.wonderprints.isomorphic.react.model;
 
-import lombok.*;
-
-@Getter
-public class RenderingData {
-    @NonNull
-    private String data;
-    @NonNull
-    private String content;
-
-    public RenderingData(String data) {
-        this.content = "";
-        this.data = "window.__PRELOADED_STATE__=" + data;
+public record RenderingData(String data, String content) {
+    // Compact constructor to ensure data is always prefixed
+    public RenderingData {
+        if (data != null && !data.startsWith("window.__PRELOADED_STATE__=")) {
+            data = "window.__PRELOADED_STATE__=" + data;
+        }
     }
-    public RenderingData(String data, String content) {
-        this.content = content;
-        this.data = "window.__PRELOADED_STATE__=" + data;
+    
+    // Static factory method matching original single-parameter constructor
+    public static RenderingData of(String rawData) {
+        return new RenderingData(rawData, "");
+    }
+    
+    // Static factory method matching original two-parameter constructor  
+    public static RenderingData of(String rawData, String content) {
+        return new RenderingData(rawData, content);
     }
 }

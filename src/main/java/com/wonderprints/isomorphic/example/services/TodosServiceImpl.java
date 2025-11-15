@@ -5,20 +5,19 @@ import com.wonderprints.isomorphic.example.model.Todo;
 import com.wonderprints.isomorphic.example.model.VisibilityFilter;
 import com.wonderprints.isomorphic.example.repositories.TodoRepository;
 import com.wonderprints.isomorphic.example.repositories.VisibilityFilterRepository;
-import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import java.util.ArrayList;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CompletableFuture;
 
 @Service("todosService")
 public class TodosServiceImpl implements TodosService {
     private final VisibilityFilterRepository visibilityFilterRepository;
     private final TodoRepository todoRepository;
+    private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     @Autowired
     public TodosServiceImpl(VisibilityFilterRepository visibilityFilterRepository, TodoRepository todoRepository) {
@@ -27,59 +26,71 @@ public class TodosServiceImpl implements TodosService {
     }
 
     @Override
-    public synchronized Mono<VisibilityFilter> setVisibilityFilter(String visibilityFilter) {
-        return visibilityFilterRepository.deleteAll()
-            .then(visibilityFilterRepository.save(new VisibilityFilter(visibilityFilter)));
+    public synchronized VisibilityFilter setVisibilityFilter(String visibilityFilter) {
+        return CompletableFuture.supplyAsync(() -> {
+            visibilityFilterRepository.deleteAll();
+            return visibilityFilterRepository.save(new VisibilityFilter(visibilityFilter));
+        }, virtualThreadExecutor).join();
     }
 
-    private BiFunction<ArrayList<Todo>, Todo, ArrayList<Todo>> reducer = (ArrayList<Todo> acc, Todo curr) -> {
-        acc.add(curr);
-        return acc;
-    };
-
-    private Mono<Void> findAndProcessAll(TodoRepository repository, Function<List<Todo>, Mono<Void>> func)  {
-        return repository.findAll().reduce(new ArrayList<>(), reducer).flatMap(func).then();
+    private void findAndProcessAll(TodoRepository repository, Function<List<Todo>, Void> func) {
+        CompletableFuture.runAsync(() -> {
+            List<Todo> todosList = repository.findAll();
+            func.apply(todosList);
+        }, virtualThreadExecutor).join();
     }
 
     @Override
-    public synchronized Mono<Void> completeAllTodos() {
-        Function<List<Todo>, Mono<Void>> completeAll = (List<Todo> todosList) -> {
-            val areAllMarked = todosList.stream().allMatch(Todo::isCompleted);
-            val newTodosList = todosList.stream().map(todo -> new Todo(todo.getId(), todo.getText(), !areAllMarked)).map(Todo::cp).collect(Collectors.toList());
-            return todoRepository.deleteAll().thenMany(Flux.fromStream(newTodosList.stream()).flatMap(todoRepository::save)).then();
+    public synchronized void completeAllTodos() {
+        Function<List<Todo>, Void> completeAll = (List<Todo> todosList) -> {
+            boolean areAllMarked = todosList.stream().allMatch(Todo::completed);
+            List<Todo> newTodosList = todosList.stream()
+                .map(todo -> new Todo(todo.id(), todo.text(), !areAllMarked))
+                .map(Todo::cp)
+                .collect(Collectors.toList());
+            todoRepository.deleteAll();
+            todoRepository.saveAll(newTodosList);
+            return null;
         };
         try {
-            return findAndProcessAll(todoRepository, completeAll);
+            findAndProcessAll(todoRepository, completeAll);
         } catch (Exception e) {
-            return Mono.empty();
+            e.printStackTrace();
         }
     }
 
     @Override
-    public synchronized Mono<Void> clearCompleted() {
-        Function<List<Todo>, Mono<Void>> clearCompleted = (List<Todo> todosList) -> {
-            val newTodosList = todosList.stream().filter(todo -> !todo.isCompleted()).map(Todo::cp).collect(Collectors.toList());
-            return todoRepository.deleteAll().thenMany(Flux.fromStream(newTodosList.stream()).flatMap(todoRepository::save)).then();
+    public synchronized void clearCompleted() {
+        Function<List<Todo>, Void> clearCompleted = (List<Todo> todosList) -> {
+            List<Todo> newTodosList = todosList.stream()
+                .filter(todo -> !todo.completed())
+                .map(Todo::cp)
+                .collect(Collectors.toList());
+            todoRepository.deleteAll();
+            todoRepository.saveAll(newTodosList);
+            return null;
         };
         try {
-            return findAndProcessAll(todoRepository, clearCompleted);
+            findAndProcessAll(todoRepository, clearCompleted);
         } catch (Exception e) {
-            return Mono.empty();
+            e.printStackTrace();
         }
     }
 
     @Override
-    public synchronized Mono<Todo> addTodo(Todo todo) {
-        return todoRepository.save(todo);
+    public synchronized Todo addTodo(Todo todo) {
+        return CompletableFuture.supplyAsync(() -> todoRepository.save(todo), virtualThreadExecutor).join();
     }
 
     @Override
-    public synchronized Mono<Void> deleteTodo(String id) {
-        return todoRepository.findById(id).flatMap(todoRepository::delete);
+    public synchronized void deleteTodo(String id) {
+        CompletableFuture.runAsync(() -> {
+            todoRepository.findById(id).ifPresent(todoRepository::delete);
+        }, virtualThreadExecutor).join();
     }
 
     @Override
-    public synchronized Mono<Todo> updateTodo(String id, Todo todo) {
-        return todoRepository.save(todo);
+    public synchronized Todo updateTodo(String id, Todo todo) {
+        return CompletableFuture.supplyAsync(() -> todoRepository.save(todo), virtualThreadExecutor).join();
     }
 }

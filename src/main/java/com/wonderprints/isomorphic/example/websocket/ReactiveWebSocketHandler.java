@@ -2,21 +2,22 @@ package com.wonderprints.isomorphic.example.websocket;
 
 import com.wonderprints.isomorphic.example.services.ClientMessageDecoder;
 import com.wonderprints.isomorphic.react.services.RenderingService;
-import lombok.val;
-import org.springframework.web.reactive.socket.WebSocketHandler;
-import org.springframework.web.reactive.socket.WebSocketSession;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
-public class ReactiveWebSocketHandler implements WebSocketHandler {
-  private static Map<String, FluxSink<String>> sessionsMap = new ConcurrentHashMap<>();
+public class ReactiveWebSocketHandler extends TextWebSocketHandler {
+  private static Map<String, WebSocketSession> sessionsMap = new ConcurrentHashMap<>();
   private ClientMessageDecoder clientMessageDecoder;
   private RenderingService renderingService;
+  private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
   public ReactiveWebSocketHandler(ClientMessageDecoder clientMessageDecoder, RenderingService renderingService) {
     this.clientMessageDecoder = clientMessageDecoder;
@@ -24,46 +25,59 @@ public class ReactiveWebSocketHandler implements WebSocketHandler {
   }
 
   @Override
-  public Mono<Void> handle(WebSocketSession webSocketSession) {
-    val sessionId = webSocketSession.getId();
-    // Subscribe to the inbound message flux
-    webSocketSession.receive().doFinally(sig -> {
-      System.out.println("Terminating WebSocket Session (client side) sig: [" + sig.name() + "] [" + sessionId + "]");
-      webSocketSession.close();
-      sessionsMap.remove(sessionId);  // remove the stored session id
-    }).map(inMsg -> inMsg.getPayloadAsText().replace("\\", ""))
-        .filter(message -> message.length() >= 2)
-        .map(message -> message.substring(1, message.length() - 1))
-        .flatMap(message -> clientMessageDecoder.handleMessage(message).subscribeOn(Schedulers.elastic()))
-        .flatMap(message -> {
-          broadcast(message);
-          return Mono.just(message);
-        })
-        .doOnNext(message -> System.out.println("Received Message: " + message))
-        .onBackpressureLatest()
-        .flatMap(message -> renderingService.getCurrentStateAsString$().flatMap((String stateAsString) -> {
-          renderingService.setCurrentStateAsString(stateAsString);
-          return Mono.just(message);
-        }))
-        .flatMap(message -> {
-          val now = Instant.now().toEpochMilli();
-          renderingService.render();
-          System.out.println("rendered in " + (Instant.now().toEpochMilli() - now) + " milliseconds");
-          return Mono.just(message);
-        })
-        .subscribe($ -> {
-        });
-    return webSocketSession.send(getFlux(sessionId).map(webSocketSession::textMessage));
+  public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+    String sessionId = session.getId();
+    sessionsMap.put(sessionId, session);
+    System.out.println("WebSocket connection established: " + sessionId);
   }
 
-  private Flux<String> getFlux(String sessionId) {
-    return Flux.create(sink -> {
-      sessionsMap.put(sessionId, sink);
-      System.out.println("added one session");
+  @Override
+  public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    String sessionId = session.getId();
+    String payload = message.getPayload();
+    
+    virtualThreadExecutor.submit(() -> {
+      try {
+        String processedMessage = payload.replace("\\", "");
+        if (processedMessage.length() >= 2) {
+          String cleanMessage = processedMessage.substring(1, processedMessage.length() - 1);
+          
+          String result = clientMessageDecoder.handleMessage(cleanMessage);
+          if (result != null) {
+            broadcast(result);
+            System.out.println("Received Message: " + result);
+            
+            String stateAsString = renderingService.getCurrentStateAsString();
+            renderingService.setCurrentStateAsString(stateAsString);
+            
+            long now = Instant.now().toEpochMilli();
+            renderingService.render();
+            System.out.println("rendered in " + (Instant.now().toEpochMilli() - now) + " milliseconds");
+          }
+        }
+      } catch (Exception e) {
+        System.err.println("Error handling WebSocket message: " + e.getMessage());
+        e.printStackTrace();
+      }
     });
   }
 
+  @Override
+  public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+    String sessionId = session.getId();
+    System.out.println("Terminating WebSocket Session (client side) sig: [" + status + "] [" + sessionId + "]");
+    sessionsMap.remove(sessionId);
+  }
+
   public static void broadcast(String message) {
-    sessionsMap.values().forEach(sink -> sink.next(message));
+    sessionsMap.values().forEach(session -> {
+      try {
+        if (session.isOpen()) {
+          session.sendMessage(new TextMessage(message));
+        }
+      } catch (IOException e) {
+        System.err.println("Error broadcasting message: " + e.getMessage());
+      }
+    });
   }
 }

@@ -49,10 +49,13 @@ measureFileSizesBeforeBuild(paths.appBuild)
         if (process.env.BUILD_TYPE === 'client') {
             fs.emptyDirSync(paths.appBuild);
         } else {
-            fs.removeSync(paths.appBuild + '/server.js');
-            fs.removeSync(paths.appBuild + '/server.js.map');
-            fs.removeSync(paths.appBuild + '/server.css');
-            fs.removeSync(paths.appBuild + '/server.css.map');
+            const filesToRemove = ['/server.js', '/server.js.map', '/server.css', '/server.css.map'];
+            filesToRemove.forEach(file => {
+                const filePath = paths.appBuild + file;
+                if (fs.existsSync(filePath)) {
+                    fs.removeSync(filePath);
+                }
+            });
         }
 
         // Merge with the public folder
@@ -150,8 +153,18 @@ function build(previousFileSizes) {
 }
 
 function copyPublicFolder() {
-    fs.copySync(paths.appPublic, paths.appBuild, {
-        dereference: true,
-        filter: file => file !== paths.appHtml,
-    });
+    try {
+        if (fs.existsSync(paths.appPublic)) {
+            fs.copySync(paths.appPublic, paths.appBuild, {
+                dereference: true,
+                filter: file => file !== paths.appHtml,
+                overwrite: true,
+            });
+        }
+    } catch (err) {
+        // Ignore errors for missing files during copy
+        if (err.code !== 'ENOENT') {
+            throw err;
+        }
+    }
 }

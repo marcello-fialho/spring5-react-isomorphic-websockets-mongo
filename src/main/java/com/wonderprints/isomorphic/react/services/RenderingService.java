@@ -1,7 +1,6 @@
 package com.wonderprints.isomorphic.react.services;
 
 import com.wonderprints.isomorphic.react.model.RenderingData;
-import reactor.core.publisher.Mono;
 import java.util.Optional;
 
 public interface RenderingService {
@@ -12,7 +11,7 @@ public interface RenderingService {
     boolean isRendering();
     boolean tryWaitUntilRendered();
     boolean renderedPageIsStale();
-    Mono<String> getCurrentStateAsString$();
+    String getCurrentStateAsString();
     void setCurrentStateAsString(String currentStateAsString);
     void init();
 }
