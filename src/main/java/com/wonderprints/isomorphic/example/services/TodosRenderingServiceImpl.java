@@ -7,42 +7,40 @@ import com.wonderprints.isomorphic.example.repositories.VisibilityFilterReposito
 import com.wonderprints.isomorphic.react.model.RenderingData;
 import com.wonderprints.isomorphic.react.services.RenderingService;
 import com.wonderprints.isomorphic.react.services.RenderingServiceImpl;
-import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 @Service("renderingService")
 public class TodosRenderingServiceImpl implements RenderingService {
   private final TodoRepository todoRepository;
   private final VisibilityFilterRepository visibilityFilterRepository;
+  private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
   @Value("${rendering-wait-timeout}")
   private String renderingWaitTimeoutStr;
 
-  private <T> ArrayList<T> reducer(ArrayList<T> acc, T curr) {
-    acc.add(curr);
-    return acc;
-  }
-
-  private BiFunction<TodoRepository, VisibilityFilterRepository, Mono<Map<String, Object>>> stateGetter$ = (TodoRepository todoRepository, VisibilityFilterRepository visibilityFilterRepository) ->
-      todoRepository.findAll().reduce(new ArrayList<Todo>(), this::reducer).flatMap((ArrayList<Todo> todosList) -> {
-        val initialState = new HashMap<String, Object>();
-        initialState.put("todos", todosList);
-        return Mono.just(initialState);
-      }).flatMap((HashMap<String, Object> initialState) -> visibilityFilterRepository.findAll().reduce(new ArrayList<VisibilityFilter>(), this::reducer).flatMap(vList -> {
-          initialState.put("visibilityFilter", vList.get(0).getValue());
-        return Mono.just(initialState);
-      }));
+  private BiFunction<TodoRepository, VisibilityFilterRepository, Map<String, Object>> stateGetter = (TodoRepository todoRepository, VisibilityFilterRepository visibilityFilterRepository) -> {
+    Map<String, Object> initialState = new HashMap<String, Object>();
+    ArrayList<Todo> todosList = new ArrayList<Todo>(todoRepository.findAll());
+    initialState.put("todos", todosList);
+    ArrayList<VisibilityFilter> vList = new ArrayList<VisibilityFilter>(visibilityFilterRepository.findAll());
+    if (!vList.isEmpty()) {
+      initialState.put("visibilityFilter", vList.get(0).value());
+    } else {
+      initialState.put("visibilityFilter", "show_all");
+    }
+    return initialState;
+  };
 
   private RenderingServiceImpl renderingServiceImpl;
 
@@ -68,8 +66,8 @@ public class TodosRenderingServiceImpl implements RenderingService {
   }
 
   @Override
-  public Mono<String> getCurrentStateAsString$() {
-    return renderingServiceImpl.getCurrentStateAsString$();
+  public String getCurrentStateAsString() {
+    return renderingServiceImpl.getCurrentStateAsString();
   }
 
   @Override
@@ -96,7 +94,7 @@ public class TodosRenderingServiceImpl implements RenderingService {
 
   @PostConstruct
   private void start() {
-    renderingServiceImpl = new RenderingServiceImpl(stateGetter$, todoRepository, visibilityFilterRepository);
+    renderingServiceImpl = new RenderingServiceImpl(stateGetter, todoRepository, visibilityFilterRepository);
     renderingServiceImpl.setRenderingWaitTimeout(getRenderingWaitTimeout());
   }
 

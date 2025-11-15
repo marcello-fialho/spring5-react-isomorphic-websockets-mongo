@@ -7,13 +7,13 @@ import com.wonderprints.isomorphic.example.repositories.VisibilityFilterReposito
 import com.wonderprints.isomorphic.react.renderer.React;
 import com.wonderprints.isomorphic.react.model.RenderingData;
 import java.util.function.BiFunction;
-import lombok.val;
-import reactor.core.publisher.Mono;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
-
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CompletableFuture;
 
 public final class RenderingServiceImpl implements RenderingService {
     private final TodoRepository todoRepository;
@@ -21,10 +21,13 @@ public final class RenderingServiceImpl implements RenderingService {
     private RenderingData cache;
     private React react = new React();
     private ObjectMapper mapper = new ObjectMapper();
-    private BiFunction<TodoRepository,VisibilityFilterRepository,Mono<Map<String,Object>>> stateGetter$;
+    private BiFunction<TodoRepository,VisibilityFilterRepository,Map<String,Object>> stateGetter;
     private volatile String lastRenderedStateAsString = "";
     private volatile String currentStateAsString = "";
     private Semaphore sem = new Semaphore(1);
+    private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private int renderingWaitTimeout;
+    private volatile boolean rendering = false;
 
     public synchronized void setCurrentStateAsString(String currentStateAsString) {
         this.currentStateAsString = currentStateAsString;
@@ -35,58 +38,38 @@ public final class RenderingServiceImpl implements RenderingService {
         this.currentStateAsString = getCurrentStateAsStringSync();
     }
 
-    public Mono<String> getCurrentStateAsString$() {
-      try {
-        return stateGetter$.apply(todoRepository, visibilityFilterRepository).flatMap((Map<String,Object> state) -> {
-            try {
-                val currentStateAsString = mapper.writeValueAsString(state);
-                return Mono.just(currentStateAsString);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-                return Mono.just("");
-            }
-        });
-      } catch (Exception e) {
-         e.printStackTrace();
-         return Mono.empty();
-      }
+    public String getCurrentStateAsString() {
+        try {
+            Map<String, Object> state = stateGetter.apply(todoRepository, visibilityFilterRepository);
+            return mapper.writeValueAsString(state);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return "";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
     }
 
     private String getCurrentStateAsStringSync() {
-        val sem = new Semaphore(1);
-        sem.acquireUninterruptibly();
-        val currentStateAsStringBuilder = new StringBuilder();
-        getCurrentStateAsString$().subscribe((String stateAsString) -> {
-            currentStateAsStringBuilder.append(stateAsString);
-            sem.release();
-        }, (error) -> {
-            error.printStackTrace();
-            sem.release();
-        }, sem::release);
-        sem.acquireUninterruptibly();
-        sem.release();
-        return currentStateAsStringBuilder.toString();
+        return CompletableFuture.supplyAsync(() -> getCurrentStateAsString(), virtualThreadExecutor).join();
     }
 
-    public RenderingServiceImpl(BiFunction<TodoRepository,VisibilityFilterRepository,Mono<Map<String, Object>>> stateGetter$, TodoRepository todoRepositoru, VisibilityFilterRepository visibilityFilterRepository) {
-        this.todoRepository = todoRepositoru;
+    public RenderingServiceImpl(BiFunction<TodoRepository,VisibilityFilterRepository,Map<String, Object>> stateGetter, TodoRepository todoRepository, VisibilityFilterRepository visibilityFilterRepository) {
+        this.todoRepository = todoRepository;
         this.visibilityFilterRepository = visibilityFilterRepository;
-        this.stateGetter$ = stateGetter$;
+        this.stateGetter = stateGetter;
     }
 
     public void setRenderingWaitTimeout(int renderingWaitTimeout) {
         this.renderingWaitTimeout = renderingWaitTimeout;
     }
 
-    private int renderingWaitTimeout;
-
-    private volatile boolean rendering = false;
-
     @Override
     public Optional<RenderingData> getRenderingData() {
         if (cache == null) return Optional.empty();
         try {
-            val acquired = sem.tryAcquire(renderingWaitTimeout, TimeUnit.MILLISECONDS);
+            boolean acquired = sem.tryAcquire(renderingWaitTimeout, TimeUnit.MILLISECONDS);
             if (acquired) {
                 sem.release();
                 return Optional.of(cache);
@@ -100,13 +83,13 @@ public final class RenderingServiceImpl implements RenderingService {
 
     @Override
     public RenderingData getModelOnly() {
-        return new RenderingData(currentStateAsString);
+        return RenderingData.of(currentStateAsString);
     }
 
     @Override
     public boolean tryWaitUntilRendered() {
         try {
-            val acquired = sem.tryAcquire(renderingWaitTimeout, TimeUnit.MILLISECONDS);
+            boolean acquired = sem.tryAcquire(renderingWaitTimeout, TimeUnit.MILLISECONDS);
             if (acquired) {
                 sem.release();
                 return true;
@@ -132,14 +115,14 @@ public final class RenderingServiceImpl implements RenderingService {
     public void render(String url) {
         sem.acquireUninterruptibly();
         rendering = true;
-        val req = new HashMap<String, Object>();
-        req.put("location", url);
         try {
-            val requestAsString = mapper.writeValueAsString(req);
-            val initialStateAsString = currentStateAsString;
+            HashMap<String, Object> req = new HashMap<String, Object>();
+            req.put("location", url);
+            String requestAsString = mapper.writeValueAsString(req);
+            String initialStateAsString = currentStateAsString;
             lastRenderedStateAsString = initialStateAsString;
-            val content = react.render(initialStateAsString, requestAsString);
-            cache = new RenderingData(initialStateAsString, content);
+            String content = react.render(initialStateAsString, requestAsString);
+            cache = RenderingData.of(initialStateAsString, content);
             System.out.println("Template rendered...");
         } catch (JsonProcessingException e) {
             throw new RuntimeException("failed to parse json input(s)", e);

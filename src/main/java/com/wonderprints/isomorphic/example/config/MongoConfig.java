@@ -1,23 +1,15 @@
 package com.wonderprints.isomorphic.example.config;
 
-import com.mongodb.MongoClient;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 @Configuration
-public class MongoConfig extends AbstractMongoConfiguration {
+public class MongoConfig extends AbstractMongoClientConfiguration {
   @Override
-  @Bean
   public MongoClient mongoClient() {
-    return new MongoClient("127.0.0.1", 27017);
-  }
-
-  @Override
-  @Bean
-  public MongoTemplate mongoTemplate() {
-    return new MongoTemplate(mongoClient(), "test");
+    return MongoClients.create("mongodb://127.0.0.1:27017");
   }
 
   @Override
