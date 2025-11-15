@@ -80,12 +80,9 @@
 			<groupId>org.thymeleaf</groupId>
 			<artifactId>thymeleaf-spring6</artifactId>
 		</dependency>
-		<!-- Nashorn for Java 11+ (removed from JDK in Java 15) -->
-		<dependency>
-			<groupId>org.openjdk.nashorn</groupId>
-			<artifactId>nashorn-core</artifactId>
-			<version>15.4</version>
-		</dependency>
+		<!-- GraalVM JavaScript (GraalJS) - requires GraalVM JDK -->
+		<!-- Note: GraalJS requires GraalVM JDK to be installed and set as JAVA_HOME -->
+		<!-- The application will use GraalJS via javax.script API when running on GraalVM JDK -->
 	</dependencies>
 	<build>
 		<resources>
