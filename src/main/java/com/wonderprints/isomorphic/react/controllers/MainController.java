@@ -23,14 +23,14 @@ public class MainController {
 
         // in case we are still rendering, proceed with non-isomorphic rendering
         if (renderingService.isRendering() || renderingService.renderedPageIsStale()) {
-            com.wonderprints.isomorphic.react.model.RenderingData rd = renderingService.getModelOnly();
+            var rd = renderingService.getModelOnly();
             model.put("content", "");
             model.put("data", rd.data());
             model.put("spinner", " .loader { display: block } ");
             return "index";
         }
 
-        java.util.Optional<com.wonderprints.isomorphic.react.model.RenderingData> rd = renderingService.getRenderingData();
+        var rd = renderingService.getRenderingData();
         if (!rd.isPresent()) { // The cache should never be empty as we trigger rendering at startup, so this is a sanity check
             return "error";
         }
