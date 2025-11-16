@@ -25,7 +25,7 @@ public class ReactiveWebSocketsApplication {
 	}
 
 	@EventListener(ApplicationReadyEvent.class)
-  public void render() {
+  	public void render() {
 		renderingService.init();
 		renderingService.render();
 	}
