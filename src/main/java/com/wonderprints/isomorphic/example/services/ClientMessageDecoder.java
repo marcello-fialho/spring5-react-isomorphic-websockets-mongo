@@ -1,6 +1,7 @@
 package com.wonderprints.isomorphic.example.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.wonderprints.isomorphic.example.actions.AddTodo;
 import com.wonderprints.isomorphic.example.actions.DeleteTodo;
 import com.wonderprints.isomorphic.example.actions.UpdateTodo;
@@ -15,18 +16,21 @@ import java.util.regex.Pattern;
 public class ClientMessageDecoder {
 
     private final TodosService todosService;
+    private final ObjectMapper objectMapper;
     private Pattern pattern = Pattern.compile(".*type[^:]*:[^A-Z]*([A-Z_][A-Z_]*).*");
 
     @Autowired
-    public ClientMessageDecoder(TodosService todosService) {
+    public ClientMessageDecoder(TodosService todosService, ObjectMapper objectMapper) {
         this.todosService = todosService;
+        this.objectMapper = objectMapper;
     }
 
     public String handleMessage(String message) {
-        var objectMapper = new ObjectMapper();
+        System.out.println("ClientMessageDecoder.handleMessage called with: " + message);
         var matcher = pattern.matcher(message);
         if (matcher.matches()) {
             var actionType = matcher.group(1);
+            System.out.println("Matched action type: " + actionType);
             try {
                 return switch (actionType) {
                     case "ADD_TODO" -> {
@@ -42,6 +46,7 @@ public class ClientMessageDecoder {
                     case "UPDATE_TODO" -> {
                         UpdateTodo updateTodoAction = objectMapper.readValue(message, UpdateTodo.class);
                         todosService.updateTodo(updateTodoAction.todo().id(), updateTodoAction.todo());
+                        System.out.println("UPDATE_TODO processed successfully");
                         yield message;
                     }
                     case "COMPLETE_ALL_TODOS" -> {

@@ -38,22 +38,36 @@ public class ReactiveWebSocketHandler extends TextWebSocketHandler {
     
     virtualThreadExecutor.submit(() -> {
       try {
-        var processedMessage = payload.replace("\\", "");
-        if (processedMessage.length() >= 2) {
-          var cleanMessage = processedMessage.substring(1, processedMessage.length() - 1);
-          
-          var result = clientMessageDecoder.handleMessage(cleanMessage);
-          if (result != null) {
-            broadcast(result);
-            System.out.println("Received Message: " + result);
-            
-            var stateAsString = renderingService.getCurrentStateAsString();
-            renderingService.setCurrentStateAsString(stateAsString);
-            
-            var now = Instant.now().toEpochMilli();
-            renderingService.render();
-            System.out.println("rendered in " + (Instant.now().toEpochMilli() - now) + " milliseconds");
+        System.out.println("Received raw WebSocket message: " + payload);
+        
+        // The message might be double-stringified (escaped quotes), so we need to parse it first
+        String cleanMessage = payload;
+        if (payload.startsWith("\"") && payload.endsWith("\"") && payload.length() > 2) {
+          // Message is a JSON string (double-stringified), parse it to get the actual JSON
+          try {
+            var objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            cleanMessage = objectMapper.readValue(payload, String.class);
+            System.out.println("Unescaped message: " + cleanMessage);
+          } catch (Exception e) {
+            System.out.println("Failed to unescape message, using original: " + e.getMessage());
+            // If unescaping fails, use the original payload
+            cleanMessage = payload;
           }
+        }
+        
+        var result = clientMessageDecoder.handleMessage(cleanMessage);
+        if (result != null) {
+          broadcast(result);
+          System.out.println("Broadcasting message to all clients: " + result);
+          
+          var stateAsString = renderingService.getCurrentStateAsString();
+          renderingService.setCurrentStateAsString(stateAsString);
+          
+          var now = Instant.now().toEpochMilli();
+          renderingService.render();
+          System.out.println("rendered in " + (Instant.now().toEpochMilli() - now) + " milliseconds");
+        } else {
+          System.out.println("ClientMessageDecoder returned null - message not processed");
         }
       } catch (Exception e) {
         System.err.println("Error handling WebSocket message: " + e.getMessage());

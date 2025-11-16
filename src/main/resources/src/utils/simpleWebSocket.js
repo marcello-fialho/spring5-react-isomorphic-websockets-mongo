@@ -45,7 +45,13 @@ export const SimpleWebSocket = () => {
 
     const sendMessage = (message) => {
         if (socket) {
-            socket.send(JSON.stringify(message));
+            // If message is already a string (JSON), send it directly
+            // Otherwise stringify it
+            if (typeof message === 'string') {
+                socket.send(message);
+            } else {
+                socket.send(JSON.stringify(message));
+            }
         }
     };
 
