@@ -15,13 +15,23 @@ export const beforeDeleteTodo = id =>  {
 }
 export const beforeEditTodo = (id, text) =>  {
     const todo = {...window.store.getState().todos.filter(todo => todo.id === id)[0], text}
-    if (window && window.webSocket) window.webSocket.sendMessage(JSON.stringify(updateTodo(todo)))
+    const updateAction = updateTodo(todo)
+    if (window && window.webSocket) {
+        const message = JSON.stringify(updateAction)
+        console.log('Sending UPDATE_TODO:', message)
+        window.webSocket.sendMessage(message)
+    }
     return { type: types.BEFORE_EDIT_TODO, id, text }
 }
 export const beforeCompleteTodo = id =>  {
     let todo = window.store.getState().todos.filter(todo => todo.id === id)[0]
     todo = {...todo, completed: !todo.completed}
-    if (window && window.webSocket) window.webSocket.sendMessage(JSON.stringify(updateTodo(todo)))
+    const updateAction = updateTodo(todo)
+    if (window && window.webSocket) {
+        const message = JSON.stringify(updateAction)
+        console.log('Sending UPDATE_TODO:', message)
+        window.webSocket.sendMessage(message)
+    }
     return { type: types.BEFORE_COMPLETE_TODO, id }
 }
 export const completeAllTodos = () => ({ type: types.COMPLETE_ALL_TODOS })
