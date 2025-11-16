@@ -17,14 +17,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
 
 @Service("renderingService")
 public class TodosRenderingServiceImpl implements RenderingService {
   private final TodoRepository todoRepository;
   private final VisibilityFilterRepository visibilityFilterRepository;
-  private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
   @Value("${rendering-wait-timeout}")
   private String renderingWaitTimeoutStr;

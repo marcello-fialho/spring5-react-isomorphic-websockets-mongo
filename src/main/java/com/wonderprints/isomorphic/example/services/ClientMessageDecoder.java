@@ -1,7 +1,6 @@
 package com.wonderprints.isomorphic.example.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.wonderprints.isomorphic.example.actions.AddTodo;
 import com.wonderprints.isomorphic.example.actions.DeleteTodo;
 import com.wonderprints.isomorphic.example.actions.UpdateTodo;
