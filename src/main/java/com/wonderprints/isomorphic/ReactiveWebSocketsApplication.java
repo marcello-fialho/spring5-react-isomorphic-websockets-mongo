@@ -26,6 +26,12 @@ public class ReactiveWebSocketsApplication {
 
 	@EventListener(ApplicationReadyEvent.class)
   	public void render() {
+		// Wait a bit to ensure RepositoryInitializer has completed
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 		renderingService.init();
 		renderingService.render();
 	}

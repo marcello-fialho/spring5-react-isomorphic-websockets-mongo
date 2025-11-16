@@ -116,6 +116,8 @@ public final class RenderingServiceImpl implements RenderingService {
         sem.acquireUninterruptibly();
         rendering = true;
         try {
+            // Refresh current state from database before rendering
+            this.currentStateAsString = getCurrentStateAsStringSync();
             var req = new HashMap<String, Object>();
             req.put("location", url);
             var requestAsString = mapper.writeValueAsString(req);
@@ -123,7 +125,7 @@ public final class RenderingServiceImpl implements RenderingService {
             lastRenderedStateAsString = initialStateAsString;
             var content = react.render(initialStateAsString, requestAsString);
             cache = RenderingData.of(initialStateAsString, content);
-            System.out.println("Template rendered...");
+            System.out.println("Template rendered with " + mapper.readTree(initialStateAsString).get("todos").size() + " todos");
         } catch (JsonProcessingException e) {
             throw new RuntimeException("failed to parse json input(s)", e);
         } finally {

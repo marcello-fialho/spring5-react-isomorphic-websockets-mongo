@@ -80,9 +80,19 @@
 			<groupId>org.thymeleaf</groupId>
 			<artifactId>thymeleaf-spring6</artifactId>
 		</dependency>
-		<!-- GraalVM JavaScript (GraalJS) - requires GraalVM JDK -->
-		<!-- Note: GraalJS requires GraalVM JDK to be installed and set as JAVA_HOME -->
-		<!-- The application will use GraalJS via javax.script API when running on GraalVM JDK -->
+		<!-- GraalVM JavaScript (GraalJS) - polyglot API -->
+		<!-- Note: Using version compatible with GraalVM JDK 25 runtime -->
+		<dependency>
+			<groupId>org.graalvm.polyglot</groupId>
+			<artifactId>polyglot</artifactId>
+			<version>25.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.graalvm.polyglot</groupId>
+			<artifactId>js-community</artifactId>
+			<version>25.0.0</version>
+			<type>pom</type>
+		</dependency>
 	</dependencies>
 	<build>
 		<resources>
