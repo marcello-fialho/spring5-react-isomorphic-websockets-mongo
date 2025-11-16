@@ -24,8 +24,10 @@ public class RepositoryInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        System.out.println("RepositoryInitializer: Starting database initialization...");
         // Initialize Todo collection
         mongoTemplate.dropCollection("todo");
+        System.out.println("RepositoryInitializer: Dropped todo collection");
         if (!emptyDB) {
             var todos = Arrays.asList(
                 new Todo("1", "Learn JavaScript", false),
@@ -37,10 +39,12 @@ public class RepositoryInitializer implements CommandLineRunner {
             var ops = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, Todo.class);
             ops.insert(todos);
             ops.execute();
+            System.out.println("RepositoryInitializer: Inserted " + todos.size() + " todos");
         }
 
         // Initialize VisibilityFilter collection
         mongoTemplate.dropCollection("visibilityFilter");
         mongoTemplate.insert(new VisibilityFilter("show_all"), "visibilityFilter");
+        System.out.println("RepositoryInitializer: Database initialization complete");
     }
 }
