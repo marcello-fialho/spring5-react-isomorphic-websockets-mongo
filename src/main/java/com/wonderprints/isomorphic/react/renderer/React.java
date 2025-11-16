@@ -2,11 +2,8 @@ package com.wonderprints.isomorphic.react.renderer;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
-import java.util.concurrent.Executors;
 
 public class React {
 
