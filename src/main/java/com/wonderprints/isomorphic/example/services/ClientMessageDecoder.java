@@ -46,7 +46,6 @@ public class ClientMessageDecoder {
                     case "UPDATE_TODO" -> {
                         UpdateTodo updateTodoAction = objectMapper.readValue(message, UpdateTodo.class);
                         todosService.updateTodo(updateTodoAction.todo().id(), updateTodoAction.todo());
-                        System.out.println("UPDATE_TODO processed successfully");
                         yield message;
                     }
                     case "COMPLETE_ALL_TODOS" -> {
