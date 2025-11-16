@@ -3,7 +3,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.wonderprints</groupId>
+	<groupId>com.reactive</groupId>
 	<artifactId>spring5-react-isomorphic-websockets-mongo</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
@@ -198,7 +198,7 @@
 				<artifactId>exec-maven-plugin</artifactId>
 				<version>3.1.0</version>
 				<configuration>
-					<mainClass>com.wonderprints.isomorphic.ReactiveWebSocketsApplication</mainClass>
+					<mainClass>com.reactive.isomorphic.ReactiveWebSocketsApplication</mainClass>
 					<jvmArguments>
 						-Dspring.classformat.ignore=true
 						--add-opens java.base/java.lang=ALL-UNNAMED
